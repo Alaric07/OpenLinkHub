@@ -253,6 +253,27 @@ func (provider devicesPageLightingSnapshotProvider) LightingSnapshot() (lighting
 	return provider.snapshot, true
 }
 
+func TestDevicesWorkspaceOmitsIncompleteLightingConversion(t *testing.T) {
+	const serial = "incomplete-lighting-device"
+	snapshot := lightingpresentation.Snapshot{
+		TargetKind: "native",
+		Channels:   []lightingpresentation.Channel{{Name: "missing target identity"}},
+	}
+	if lighting := devicesLightingWorkspaceSummaryFromSnapshot(snapshot); lighting != nil {
+		t.Fatalf("incomplete Lighting conversion = %#v, want nil", lighting)
+	}
+
+	summary, ok := devicesWorkspaceSummaryForSerial(map[string]*common.Device{
+		serial: {Serial: serial, Instance: devicesPageLightingSnapshotProvider{serial: serial, snapshot: snapshot}},
+	}, nil, serial)
+	if !ok || summary == nil {
+		t.Fatalf("workspace summary = %#v, usable=%t", summary, ok)
+	}
+	if summary.Lighting != nil {
+		t.Fatalf("incomplete Lighting was attached: %#v", summary.Lighting)
+	}
+}
+
 func TestDevicesWorkspaceKeyboardPresentationAndView(t *testing.T) {
 	const serial = "keyboard-assignment-device"
 	snapshot := keyboardassignmentspresentation.Snapshot{

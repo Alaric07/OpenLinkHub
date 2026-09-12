@@ -2840,37 +2840,38 @@ type devicesLightingEffectSummary struct {
 }
 
 type devicesLightingWorkspaceSummary struct {
-	TargetKind              string
-	ConfiguredEffect        string
-	ConfiguredEffectLabel   string
-	ConfiguredEffectIconURL string
-	EffectSupported         bool
-	SupportedEffects        []devicesLightingEffectSummary
-	HasBrightness           bool
-	Brightness              uint8
-	HasSpeedControl         bool
-	Speed                   string
-	ClusterControlled       bool
-	ExternalControlled      bool
-	ReadOnly                bool
-	PaletteKind             string
-	SingleColorHex          string
-	TwoColorStartHex        string
-	TwoColorEndHex          string
-	HasTemperature          bool
-	TemperatureLow          devicesLightingTemperaturePointSummary
-	TemperatureMiddle       devicesLightingTemperaturePointSummary
-	TemperatureHigh         devicesLightingTemperaturePointSummary
-	TemperaturePoints       []devicesLightingTemperaturePointSummary
-	HasGradient             bool
-	GradientStops           []devicesLightingGradientStopSummary
-	Customized              bool
-	AuthoredZoneEditor      *devicesLightingAuthoredZoneEditorSummary
-	ThreePinPort            *devicesLightingThreePinPortSummary
-	ManualRGBPorts          []devicesLightingManualRGBPortSummary
-	IndexedColors           []devicesLightingIndexedColorSummary
-	Channels                []devicesLightingChannelSummary
-	BulkEffectControl       *devicesLightingBulkEffectControlSummary
+	TargetKind                 string
+	ConfiguredEffect           string
+	ConfiguredEffectLabel      string
+	ConfiguredEffectIconURL    string
+	EffectSupported            bool
+	SupportedEffects           []devicesLightingEffectSummary
+	HasBrightness              bool
+	Brightness                 uint8
+	HasSpeedControl            bool
+	Speed                      string
+	ClusterControlled          bool
+	ExternalControlled         bool
+	ExternalOwnershipAvailable bool
+	ReadOnly                   bool
+	PaletteKind                string
+	SingleColorHex             string
+	TwoColorStartHex           string
+	TwoColorEndHex             string
+	HasTemperature             bool
+	TemperatureLow             devicesLightingTemperaturePointSummary
+	TemperatureMiddle          devicesLightingTemperaturePointSummary
+	TemperatureHigh            devicesLightingTemperaturePointSummary
+	TemperaturePoints          []devicesLightingTemperaturePointSummary
+	HasGradient                bool
+	GradientStops              []devicesLightingGradientStopSummary
+	Customized                 bool
+	AuthoredZoneEditor         *devicesLightingAuthoredZoneEditorSummary
+	ThreePinPort               *devicesLightingThreePinPortSummary
+	ManualRGBPorts             []devicesLightingManualRGBPortSummary
+	IndexedColors              []devicesLightingIndexedColorSummary
+	Channels                   []devicesLightingChannelSummary
+	BulkEffectControl          *devicesLightingBulkEffectControlSummary
 }
 
 type devicesLightingBulkEffectControlSummary struct {
@@ -4251,21 +4252,25 @@ func devicesLightingBulkEffectIconURL(effect string, mixed bool) string {
 
 func devicesLightingWorkspaceSummaryFromSnapshot(snapshot lightingpresentation.Snapshot) *devicesLightingWorkspaceSummary {
 	summary := &devicesLightingWorkspaceSummary{
-		TargetKind:         snapshot.TargetKind,
-		ConfiguredEffect:   snapshot.ConfiguredEffect,
-		EffectSupported:    snapshot.EffectSupported,
-		HasBrightness:      snapshot.HasBrightness,
-		Brightness:         snapshot.Brightness,
-		ClusterControlled:  snapshot.ClusterControlled,
-		ExternalControlled: snapshot.ExternalControlled,
-		SupportedEffects:   make([]devicesLightingEffectSummary, len(snapshot.SupportedEffects)),
-		PaletteKind:        snapshot.PaletteKind,
-		SingleColorHex:     snapshot.SingleColorHex,
-		TwoColorStartHex:   snapshot.TwoColorStartHex,
-		TwoColorEndHex:     snapshot.TwoColorEndHex,
-		HasTemperature:     snapshot.HasTemperature,
-		HasGradient:        snapshot.HasGradient,
-		Customized:         snapshot.Customized,
+		TargetKind: snapshot.TargetKind,
+		// Direct callers of this presentation helper retain the established
+		// native default. The Devices summary below replaces this with the
+		// concrete mutation-capability check before rendering a real device.
+		ExternalOwnershipAvailable: snapshot.TargetKind == "native",
+		ConfiguredEffect:           snapshot.ConfiguredEffect,
+		EffectSupported:            snapshot.EffectSupported,
+		HasBrightness:              snapshot.HasBrightness,
+		Brightness:                 snapshot.Brightness,
+		ClusterControlled:          snapshot.ClusterControlled,
+		ExternalControlled:         snapshot.ExternalControlled,
+		SupportedEffects:           make([]devicesLightingEffectSummary, len(snapshot.SupportedEffects)),
+		PaletteKind:                snapshot.PaletteKind,
+		SingleColorHex:             snapshot.SingleColorHex,
+		TwoColorStartHex:           snapshot.TwoColorStartHex,
+		TwoColorEndHex:             snapshot.TwoColorEndHex,
+		HasTemperature:             snapshot.HasTemperature,
+		HasGradient:                snapshot.HasGradient,
+		Customized:                 snapshot.Customized,
 	}
 	if summary.HasTemperature {
 		summary.TemperatureLow = devicesLightingTemperaturePointSummary{
@@ -4445,7 +4450,10 @@ func devicesWorkspaceSummaryForSerial(
 	if lightingDevice, ok := device.Instance.(devicesLightingSnapshotProvider); ok &&
 		lightingDevice != nil && lightingDevice.LightingDeviceID() == serial {
 		if lightingSnapshot, usable := lightingDevice.LightingSnapshot(); usable && lightingSnapshot.TargetKind != "" {
-			summary.Lighting = devicesLightingWorkspaceSummaryFromSnapshot(lightingSnapshot)
+			if lighting := devicesLightingWorkspaceSummaryFromSnapshot(lightingSnapshot); lighting != nil {
+				_, lighting.ExternalOwnershipAvailable = device.Instance.(interface{ ProcessSetOpenRgbIntegration(bool) uint8 })
+				summary.Lighting = lighting
+			}
 		}
 	}
 	if dpiDevice, ok := device.Instance.(devicesDPISnapshotProvider); ok &&

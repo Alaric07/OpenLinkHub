@@ -311,6 +311,10 @@ type Device struct {
 	LCDImage                         *lcd.ImageData
 	Exit                             bool
 	mutex                            sync.Mutex
+	workerWG                         sync.WaitGroup
+	shutdownOnce                     sync.Once
+	stopMutex                        sync.Mutex
+	stopped                          bool
 	mutexLcd                         sync.Mutex
 	deviceLock                       sync.Mutex
 	autoRefreshChan                  chan struct{}
@@ -332,6 +336,7 @@ type Device struct {
 	channelLightingEffects           *lightingsettings.DeviceStore
 	channelLightingResolver          *lightingsettings.Resolver
 	lightingRestart                  func()
+	refreshDeviceData                func()
 	suppressCanonicalProfileSnapshot bool
 }
 
@@ -521,6 +526,14 @@ func (d *Device) GetRgbProfiles() interface{} {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	d.stopMutex.Lock()
+	if d.stopped {
+		d.stopMutex.Unlock()
+		return
+	}
+	d.stopped = true
+	d.stopMutex.Unlock()
+
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 
@@ -540,37 +553,9 @@ func (d *Device) Stop() {
 		d.activeRgb.Stop()
 	}
 
-	d.timer.Stop()
-	var once sync.Once
-	go func() {
-		once.Do(func() {
-			if d.autoRefreshChan != nil {
-				close(d.autoRefreshChan)
-			}
-			if !config.GetConfig().Manual {
-				d.timerSpeed.Stop()
-				if d.speedRefreshChan != nil {
-					close(d.speedRefreshChan)
-				}
-			}
-			if d.queue != nil {
-				close(d.queue)
-			}
-		})
-	}()
+	d.shutdownWorkers()
 
 	if d.HasLCD {
-		if d.DeviceProfile.LCDMode == lcd.DisplayImage {
-			if d.lcdImageChan != nil {
-				close(d.lcdImageChan)
-			}
-		} else {
-			if d.lcdRefreshChan != nil {
-				close(d.lcdRefreshChan)
-			}
-		}
-		d.lcdTimer.Stop()
-
 		lcdReports := map[int][]byte{
 			0: {0x03, 0x1e, 0x01, 0x01},
 			1: {0x03, 0x1d, 0x00, 0x01},
@@ -601,6 +586,14 @@ func (d *Device) Stop() {
 
 // StopDirty will stop device in a dirty way
 func (d *Device) StopDirty() uint8 {
+	d.stopMutex.Lock()
+	if d.stopped {
+		d.stopMutex.Unlock()
+		return 1
+	}
+	d.stopped = true
+	d.stopMutex.Unlock()
+
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 
@@ -620,37 +613,9 @@ func (d *Device) StopDirty() uint8 {
 		d.activeRgb.Stop()
 	}
 
-	d.timer.Stop()
-	var once sync.Once
-	go func() {
-		once.Do(func() {
-			if d.autoRefreshChan != nil {
-				close(d.autoRefreshChan)
-			}
-			if !config.GetConfig().Manual {
-				d.timerSpeed.Stop()
-				if d.speedRefreshChan != nil {
-					close(d.speedRefreshChan)
-				}
-			}
-			if d.queue != nil {
-				close(d.queue)
-			}
-		})
-	}()
+	d.shutdownWorkers()
 
 	if d.HasLCD {
-		if d.DeviceProfile.LCDMode == lcd.DisplayImage {
-			if d.lcdImageChan != nil {
-				close(d.lcdImageChan)
-			}
-		} else {
-			if d.lcdRefreshChan != nil {
-				close(d.lcdRefreshChan)
-			}
-		}
-		d.lcdTimer.Stop()
-
 		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
 		for i := 0; i <= 1; i++ {
 			_, e := d.lcd.SendFeatureReport(lcdReports[i])
@@ -666,6 +631,52 @@ func (d *Device) StopDirty() uint8 {
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+// shutdownWorkers synchronously stops every device-owned background worker.
+// HID handles remain valid until this returns.
+func (d *Device) shutdownWorkers() {
+	d.shutdownOnce.Do(func() {
+		if d.timer != nil {
+			d.timer.Stop()
+		}
+		if d.timerSpeed != nil {
+			d.timerSpeed.Stop()
+		}
+		if d.lcdTimer != nil {
+			d.lcdTimer.Stop()
+		}
+		if d.autoRefreshChan != nil {
+			close(d.autoRefreshChan)
+		}
+		if d.speedRefreshChan != nil {
+			close(d.speedRefreshChan)
+		}
+		if d.lcdRefreshChan != nil {
+			close(d.lcdRefreshChan)
+		}
+		if d.lcdImageChan != nil {
+			close(d.lcdImageChan)
+		}
+		if d.queue != nil {
+			close(d.queue)
+		}
+	})
+	d.workerWG.Wait()
+}
+
+// waitForLCDFrame preserves frame timing while allowing LCD workers to stop
+// promptly between frames.
+func waitForLCDFrame(delay time.Duration, shutdown <-chan struct{}) bool {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return true
+	case <-shutdown:
+		return false
+	}
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -1268,7 +1279,9 @@ func (d *Device) setDeviceColor() {
 	activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 	activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
+	d.workerWG.Add(1)
 	go func(lightChannels int) {
+		defer d.workerWG.Done()
 		startTime := time.Now()
 		for {
 			select {
@@ -1866,7 +1879,9 @@ func (d *Device) getLiquidTemperature() float32 {
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
+	d.workerWG.Add(1)
 	go func() {
+		defer d.workerWG.Done()
 		tmp := make(map[int]string)
 		channelSpeeds := map[int]byte{}
 
@@ -2310,7 +2325,9 @@ func (d *Device) setTemperatures() {
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
 	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
+	d.workerWG.Add(1)
 	go func() {
+		defer d.workerWG.Done()
 		for {
 			select {
 			case <-d.timer.C:
@@ -2318,7 +2335,11 @@ func (d *Device) setAutoRefresh() {
 					return
 				}
 				d.setTemperatures()
-				d.getDeviceData()
+				if d.refreshDeviceData != nil {
+					d.refreshDeviceData()
+				} else {
+					d.getDeviceData()
+				}
 			case <-d.autoRefreshChan:
 				d.timer.Stop()
 				return
@@ -3723,7 +3744,9 @@ func (d *Device) clearQueue() {
 func (d *Device) startQueueWorker() {
 	d.queue = make(chan []byte, 10)
 
+	d.workerWG.Add(1)
 	go func() {
+		defer d.workerWG.Done()
 		for data := range d.queue {
 			d.deviceLock.Lock()
 
@@ -3818,7 +3841,9 @@ func (d *Device) setupLCD(reload bool) {
 	}
 	d.lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
 	d.lcdRefreshChan = make(chan struct{})
+	d.workerWG.Add(1)
 	go func() {
+		defer d.workerWG.Done()
 		for {
 			select {
 			case <-d.lcdTimer.C:
@@ -4011,7 +4036,9 @@ func (d *Device) setupLCD(reload bool) {
 								d.transferToLcd(image[i].Buffer)
 								if i != imageLen-1 {
 									if image[i].Delay > 0 {
-										time.Sleep(time.Duration(image[i].Delay) * time.Millisecond)
+										if !waitForLCDFrame(time.Duration(image[i].Delay)*time.Millisecond, d.lcdRefreshChan) {
+											return
+										}
 									}
 								}
 							}
@@ -4060,7 +4087,9 @@ func (d *Device) setupLCDImage() {
 		d.loadLcdImage()
 	}
 
+	d.workerWG.Add(1)
 	go func() {
+		defer d.workerWG.Done()
 		for {
 			select {
 			default:
@@ -4071,11 +4100,12 @@ func (d *Device) setupLCDImage() {
 						delay := data.Delay
 
 						d.transferToLcd(buffer)
+						frameDelay := 100 * time.Millisecond
 						if delay > 0 {
-							time.Sleep(time.Duration(delay) * time.Millisecond)
-						} else {
-							// Single frame, static image, generate 100ms of delay
-							time.Sleep(100 * time.Millisecond)
+							frameDelay = time.Duration(delay) * time.Millisecond
+						}
+						if !waitForLCDFrame(frameDelay, d.lcdImageChan) {
+							return
 						}
 					}
 				} else {
@@ -4083,11 +4113,12 @@ func (d *Device) setupLCDImage() {
 					buffer := data.Buffer
 					delay := data.Delay
 					d.transferToLcd(buffer)
+					frameDelay := 100 * time.Millisecond
 					if delay > 0 {
-						time.Sleep(time.Duration(delay) * time.Millisecond)
-					} else {
-						// Single frame, static image, generate 100ms of delay
-						time.Sleep(100 * time.Millisecond)
+						frameDelay = time.Duration(delay) * time.Millisecond
+					}
+					if !waitForLCDFrame(frameDelay, d.lcdImageChan) {
+						return
 					}
 				}
 			case <-d.lcdImageChan:

@@ -39,6 +39,7 @@ import (
 	"LumenForge/src/media"
 	"LumenForge/src/memorypresentation"
 	"LumenForge/src/metrics"
+	"LumenForge/src/mousegesturepresentation"
 	"LumenForge/src/openrgb"
 	"LumenForge/src/optioncolorpresentation"
 	"LumenForge/src/performancepresentation"
@@ -2769,6 +2770,7 @@ type devicesWorkspaceSummary struct {
 	Cooling             *devicesCoolingWorkspaceSummary
 	Display             *devicesDisplayWorkspaceSummary
 	Memory              *devicesMemoryWorkspaceSummary
+	MouseGestures       *devicesMouseGesturesWorkspaceSummary
 	OverviewCooling     *devicesOverviewCoolingStatusSummary
 	TemperatureProbes   []devicesOverviewStatusRow
 	OverviewPerformance *devicesOverviewPerformanceStatusSummary
@@ -3000,6 +3002,11 @@ type devicesDeviceProfileSnapshotProvider interface {
 type devicesSleepTimerSnapshotProvider interface {
 	SleepTimerDeviceID() string
 	SleepTimerSnapshot() (sleeptimerpresentation.Snapshot, bool)
+}
+
+type devicesMouseGesturesSnapshotProvider interface {
+	MouseGesturesDeviceID() string
+	MouseGesturesSnapshot() (mousegesturepresentation.Snapshot, bool)
 }
 
 type devicesHeadsetSnapshotProvider interface {
@@ -3807,6 +3814,14 @@ type devicesSleepTimerWorkspaceSummary struct {
 	Value   int
 	Options []devicesSleepTimerOptionSummary
 }
+type devicesMouseGestureTiltSummary struct {
+	ID, Name string
+	Value    uint8
+}
+type devicesMouseGesturesWorkspaceSummary struct {
+	Enabled bool
+	Tilts   []devicesMouseGestureTiltSummary
+}
 type devicesControllerAssignmentTypeSummary struct {
 	ID    uint8
 	Label string
@@ -3912,6 +3927,25 @@ func devicesSleepTimerWorkspaceSummaryFromSnapshot(snapshot sleeptimerpresentati
 	}
 	if !found {
 		return nil
+	}
+	return summary
+}
+
+func devicesMouseGesturesWorkspaceSummaryFromSnapshot(snapshot mousegesturepresentation.Snapshot) *devicesMouseGesturesWorkspaceSummary {
+	if len(snapshot.Tilts) != 4 {
+		return nil
+	}
+	summary := &devicesMouseGesturesWorkspaceSummary{Enabled: snapshot.Enabled, Tilts: make([]devicesMouseGestureTiltSummary, 0, 4)}
+	seen := map[string]struct{}{}
+	for _, tilt := range snapshot.Tilts {
+		if tilt.ID == "" || tilt.Name == "" || tilt.Value < 10 || tilt.Value > 80 {
+			return nil
+		}
+		if _, ok := seen[tilt.ID]; ok {
+			return nil
+		}
+		seen[tilt.ID] = struct{}{}
+		summary.Tilts = append(summary.Tilts, devicesMouseGestureTiltSummary{ID: tilt.ID, Name: tilt.Name, Value: tilt.Value})
 	}
 	return summary
 }
@@ -4395,6 +4429,9 @@ func devicesWorkspaceSummaryForSerial(
 	if device.ProductType == common.ProductTypeVirtuosoXTW || device.ProductType == common.ProductTypeVirtuosoXTWU {
 		summary.LegacyLighting = true
 	}
+	if device.ProductType == common.ProductTypeDarkstarW || device.ProductType == common.ProductTypeDarkstarWU {
+		summary.LegacyLighting = true
+	}
 	if openRGBDevice, isOpenRGB := device.Instance.(*openrgbimport.Device); isOpenRGB &&
 		openRGBDevice != nil && openRGBDevice.Serial == serial {
 		snapshot := openRGBDevice.Snapshot()
@@ -4435,6 +4472,11 @@ func devicesWorkspaceSummaryForSerial(
 	if sleepTimerDevice, ok := device.Instance.(devicesSleepTimerSnapshotProvider); ok && sleepTimerDevice != nil && sleepTimerDevice.SleepTimerDeviceID() == serial {
 		if snapshot, usable := sleepTimerDevice.SleepTimerSnapshot(); usable {
 			summary.SleepTimer = devicesSleepTimerWorkspaceSummaryFromSnapshot(snapshot)
+		}
+	}
+	if gesturesDevice, ok := device.Instance.(devicesMouseGesturesSnapshotProvider); ok && gesturesDevice != nil && gesturesDevice.MouseGesturesDeviceID() == serial {
+		if snapshot, usable := gesturesDevice.MouseGesturesSnapshot(); usable {
+			summary.MouseGestures = devicesMouseGesturesWorkspaceSummaryFromSnapshot(snapshot)
 		}
 	}
 	if controllerDevice, ok := device.Instance.(devicesControllerSnapshotProvider); ok && controllerDevice != nil && controllerDevice.ControllerDeviceID() == serial {

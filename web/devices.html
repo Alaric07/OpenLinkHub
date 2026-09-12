@@ -146,7 +146,7 @@
                     {{ with .Device.Display }}
                         <a class="lf-device-workspace-link{{ if eq $.Device.View "display" }} lf-device-workspace-link-active{{ end }}" href="/devices?device={{ $.Device.Serial }}&amp;view=display"{{ if eq $.Device.View "display" }} aria-current="page"{{ end }}>Display</a>
                     {{ end }}
-                    {{ if and (not .Device.KeyboardAssignments) (or .Device.DPI .Device.Performance) }}
+                    {{ if and (not .Device.KeyboardAssignments) (or .Device.DPI .Device.Performance .Device.MouseGestures) }}
                         <a class="lf-device-workspace-link{{ if eq .Device.View "dpi" }} lf-device-workspace-link-active{{ end }}" href="/devices?device={{ .Device.Serial }}&amp;view=dpi"{{ if eq .Device.View "dpi" }} aria-current="page"{{ end }}>Performance</a>
                     {{ end }}
                     {{ if .Device.Buttons }}
@@ -789,6 +789,13 @@
                             </div>
                         </section>
                     {{ end }}
+					{{ with .Device.MouseGestures }}
+					<section class="lf-performance-workspace" data-lf-mouse-gestures-workspace data-lf-device-id="{{ $.Device.Serial }}">
+						<h2 class="lf-workspace-section-heading">Multi Gesture</h2>
+						<div class="lf-performance-controls"><label class="lf-performance-toggle system-toggle compact" for="lf-mouse-gestures-enabled"><span>Enable Multi Gesture</span><input id="lf-mouse-gestures-enabled" type="checkbox" data-lf-mouse-gestures-enabled{{ if .Enabled }} checked{{ end }}><span class="toggle-track" aria-hidden="true"></span></label>{{ range .Tilts }}<label class="lf-performance-control" data-lf-mouse-gesture-tilt data-lf-gesture-id="{{ .ID }}"><span>{{ .Name }}</span><input type="number" min="10" max="80" step="1" value="{{ .Value }}" data-lf-mouse-gesture-value aria-label="{{ .Name }} threshold"></label>{{ end }}</div>
+						<div class="lf-keyboard-footer-row"><button class="lf-button" type="button" data-lf-mouse-gestures-save>Save Multi Gesture</button><p class="lf-range-control-status" data-lf-mouse-gestures-status aria-live="polite"></p></div>
+					</section>
+					{{ end }}
                 {{ else if eq .Device.View "buttons" }}
                     {{ with .Device.Buttons }}
                         <section class="lf-buttons-workspace" data-lf-buttons-workspace data-lf-device-id="{{ $.Device.Serial }}">

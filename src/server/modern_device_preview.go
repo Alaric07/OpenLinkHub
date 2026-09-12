@@ -226,6 +226,8 @@ var modernDevicePreviewFixtures = []modernDevicePreviewFixture{
 	{Key: "sabre-v2-pro-wireless-modern", Title: "Sabre V2 Pro Wireless", ProductType: common.ProductTypeSabreV2Pro, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: func() *devicesWorkspaceSummary {
 		return buildWirelessMouseModernPreviewWithCapabilities("SABRE V2 PRO WIRELESS", "preview-sabre-v2-pro-wireless-modern", false, false, true, true)
 	}},
+	{Key: "darkstar-wireless-modern", Title: "DARKSTAR Wireless", ProductType: common.ProductTypeDarkstarW, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildDarkstarWirelessModernPreview},
+	{Key: "darkstar-usb-modern", Title: "DARKSTAR USB", ProductType: common.ProductTypeDarkstarWU, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildDarkstarUSBModernPreview},
 	{Key: "sabre-pro-cs-modern", Title: "SABRE PRO CS", ProductType: common.ProductTypeSabreProCs, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildSabreProCSModernPreview},
 	{Key: "scimitar-rgb-modern", Title: "SCIMITAR RGB", ProductType: common.ProductTypeScimitarRgb, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildScimitarRGBModernPreview},
 	{Key: "scimitar-elite-modern", Title: "SCIMITAR ELITE", ProductType: common.ProductTypeScimitarRgbElite, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildScimitarEliteModernPreview},
@@ -1220,6 +1222,19 @@ func buildWirelessMouseModernPreviewWithCapabilities(product, serial string, pol
 	if !lift {
 		s.Performance.LiftHeight = nil
 	}
+	return s
+}
+
+func buildDarkstarWirelessModernPreview() *devicesWorkspaceSummary {
+	s := buildWirelessMouseModernPreviewWithCapabilities("DARKSTAR", "preview-darkstar-wireless-modern", false, true, true, true)
+	s.MouseGestures = &devicesMouseGesturesWorkspaceSummary{Enabled: true, Tilts: []devicesMouseGestureTiltSummary{{ID: "0", Name: "Left Tilt", Value: 20}, {ID: "1", Name: "Right Tilt", Value: 20}, {ID: "2", Name: "Forward Tilt", Value: 20}, {ID: "3", Name: "Backward Tilt", Value: 20}}}
+	return s
+}
+
+func buildDarkstarUSBModernPreview() *devicesWorkspaceSummary {
+	s := buildDarkstarWirelessModernPreview()
+	s.Serial = "preview-darkstar-usb-modern"
+	s.Performance.PollingRate = &devicesPerformanceSelectSummary{Value: 4, Options: []devicesPerformanceOptionSummary{{Value: 0, Label: "Not Set"}, {Value: 1, Label: "125 Hz / 8 msec"}, {Value: 2, Label: "250 Hz / 4 msec"}, {Value: 3, Label: "500 Hz / 2 msec"}, {Value: 4, Label: "1000 Hz / 1 msec"}}}
 	return s
 }
 func buildSabreProCSModernPreview() *devicesWorkspaceSummary {

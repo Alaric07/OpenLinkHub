@@ -74,8 +74,8 @@ with the global system.
 
 ### Completed native migration proofs
 
-`scimitarprorgb`, `scimitarrgbelite`, `mm800`, `k95platinum`, `ccxt`, `cc`, and
-`memory` are now tracked as **Migrated**. Canonical Device Lighting is
+`scimitarprorgb`, `scimitarrgbelite`, `mm800`, `k95platinum`, `ccxt`, `cc`,
+`memory`, and `st100` are now tracked as **Migrated**. Canonical Device Lighting is
 authoritative and these packages no longer participate in retained legacy `/rgb` lighting persistence
 or mutation paths.
 
@@ -111,6 +111,14 @@ MM800 now uses canonical native Device Lighting and exposes its 15-zone
 device-authored `mousepad` mode through the same authored-zone editor. Legacy
 row grouping and overlapping legacy layout coordinates remain internal profile
 metadata and are not exposed as meaningful shared presentation semantics.
+
+ST100 RGB is the canonical authored-zone accessory reference. Its modern Devices
+workspace and canonical Lighting migration preserve device zone IDs and packet
+mappings while adapting its 9-zone stand geometry for the shared presentation
+layer. `stand` remains the device-authored mode, `static` uses the canonical
+single-color editor, and its source-backed effects remain selectable. Brightness
+and RGB Cluster ownership use existing device mutations; this does not imply
+that other lighting accessories have migrated.
 
 Commander Core XT and Commander CORE establish the separate multi-channel
 controller proof. Both expose modern Overview, Lighting, and Cooling workspaces,
@@ -321,7 +329,7 @@ Generated as a read-only architecture inventory. This does not declare migration
 | `scufenvisionproW` | Y | Legacy | zoned | Y | Y |  | Y |  |  |  |  |
 | `scufenvisionproWU` | Y | Legacy | zoned | Y | Y |  | Y |  |  |  |  |
 | `slipstream` |  | Not a lighting target | weak-marker only |  |  |  |  |  |  |  |  |
-| `st100` | Y | Legacy | single-profile | Y | Y |  |  |  | Y | Y | stand |
+| `st100` | Y | Migrated | single-profile |  | Y |  |  |  | Y | Y | stand |
 | `strafergbmk2` | Y | Legacy | single-profile | Y | Y |  |  |  |  |  | keyboard |
 | `vanguard96` | Y | Legacy | single-profile | Y |  |  |  |  | Y |  | keyboard |
 | `vanguard96W` | Y | Legacy | single-profile | Y |  |  |  |  | Y |  | keyboard |

@@ -44,6 +44,10 @@ LumenForge is a local, alpha-stage RGB and fan controller maintained by one deve
 - Successful Control Dial mode changes refresh the page before selected-option
   color editing can continue, preventing a stale rendered option target from
   receiving a color mutation.
+- Commander CORE shutdown lifecycle hardened: background refresh, speed, queue,
+  RGB, and LCD workers synchronously stop before the final hardware-mode write
+  and HID close; LCD animation waits are interruptible, preventing the HID/cgo
+  shutdown race and `free(): invalid pointer` abort.
 
 ## Observations to revisit only if reproduced
 

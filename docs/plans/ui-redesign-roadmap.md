@@ -582,6 +582,11 @@ after every legitimate native consumer has migrated.
   divergent children report presentation-only `Mixed`. Bulk mutations operate
   on the existing canonical children and restart once. Memory excludes `led`
   from aggregate choices while retaining it per DIMM.
+- [x] Complete ST100 RGB as a deliberate combined modern Devices and canonical
+  Lighting reference migration. Its source already exposed a complete
+  authored-zone lighting contract, and available physical hardware allowed
+  real-device validation. This exception does not change the normal separation
+  between workspace and canonical Lighting migration.
 - [ ] Preserve each later family's protocol, packet, topology, lifecycle,
   firmware, device-specific lighting modes, and hardware-specific output
   behavior while repeating migration one family at a time.
@@ -650,6 +655,11 @@ after every legitimate native consumer has migrated.
   USB; V1 Wireless and V2 Wireless omit it because their published SleepModes
   omit `0`/Never and the presentation fails closed rather than repairing source
   data. SCUF dongles remain transport-only (`dbbe2926`, `796c1221`).
+- [x] Complete ST100 RGB as the accessory/reference migration: modern Devices
+  workspace and canonical Lighting, with its source-backed 9-zone `stand` mode,
+  canonical `static`, source-backed effects, existing Brightness and RGB Cluster
+  mutations, and real-hardware validation. This combined migration is a
+  deliberate exception, not a general workspace-to-Lighting migration rule.
 - [ ] Audit the remaining cooling, accessory, and miscellaneous packages for
   legacy-only workspaces, then migrate only stragglers proven by that source
   audit. Existing cooling/controller coverage is substantial, but universal
@@ -1029,12 +1039,13 @@ roadmap does not promise that every duplicate will be deleted.
 after OpenRGB parity.
 23. [~] Migrate native-device families one at a time without changing their
 hardware-specific output behavior. Scimitar Pro RGB, Scimitar RGB Elite, MM800,
-K95 Platinum, Commander Core XT, Commander CORE, and Memory are fully migrated
+K95 Platinum, Commander Core XT, Commander CORE, Memory, and ST100 RGB are fully migrated
 to the canonical Device Lighting model and no longer participate in legacy
 `/rgb` lighting persistence or mutation paths. Aggregate parent controls for
 Memory and both Commander Core families remain convenience mutations over
 existing canonical children rather than new parent effect state (`aed0d672`).
-Remaining native families are still pending.
+ST100 RGB is the deliberate authored-zone accessory/reference exception; other
+native families remain pending.
 24. [x] Add the generic native authored-zone presentation and mutation contract
 for device-owned modes (`ce890f75`).
 25. [ ] Remove `/rgb`, global mutations, remaining target-local RGB copies,

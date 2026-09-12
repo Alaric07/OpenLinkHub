@@ -13,7 +13,8 @@ configuration. It covers:
 This is a deliberate clean break for alpha software. Compatibility with old
 lighting customization data is not required. OpenRGB-imported devices and RGB
 Cluster established the canonical model first. Scimitar Pro RGB, Scimitar RGB
-Elite, MM800, K95 Platinum, Commander Core XT, Commander CORE, and Memory now
+Elite, MM800, K95 Platinum, Commander Core XT, Commander CORE, Memory, and ST100
+RGB now
 form the completed native migration proof set. Remaining native device families
 still migrate separately and only after their hardware-specific behavior and required controls are understood; they are not
 part of one broad migration milestone.
@@ -33,7 +34,7 @@ the roadmap governs repository-wide cleanup classification.
 
 Scimitar Pro RGB established the first native package on the shared canonical
 independent-device lighting runtime. Scimitar RGB Elite, MM800, K95 Platinum,
-Commander Core XT, Commander CORE, and Memory are separate package proofs of the
+Commander Core XT, Commander CORE, Memory, and ST100 RGB are separate package proofs of the
 canonical Device Lighting model while retaining their own device-specific
 hardware boundaries.
 
@@ -59,6 +60,13 @@ editor. MM800 exposes its 15-zone authored `mousepad` mode in stable numeric
 order. K95 Platinum's `keyboard` mode retains its existing per-key state and is
 edited in the Keyboard workspace rather than through the generic authored-zone
 editor; its keyboard protocol, presets, and lifecycle remain device-owned.
+
+ST100 RGB is the canonical authored-zone accessory reference. Its legacy
+9-zone stand geometry is normalized only for the generic authored-zone editor;
+the stored device geometry, zone IDs, packet indexes, hardware semantics, and
+persistence remain unchanged. The shared UI is reused rather than adding a
+product-specific modern Lighting template. This does not imply that LT100, LN
+Core, LN Pro, MM700, or other accessories share ST100 semantics.
 
 K95 Platinum remains the canonical keyboard-lighting proof. Modern keyboard
 non-Lighting workspace migration is complete, and mice, headsets, and SCUF
@@ -144,7 +152,7 @@ child-effect mutations without routing native devices through
 that do not implement them are unaffected.
 
 Scimitar Pro RGB, Scimitar RGB Elite, MM800, K95 Platinum, Commander Core XT,
-Commander CORE, and Memory no longer retain
+Commander CORE, Memory, and ST100 RGB no longer retain
 legacy `/rgb` lighting persistence or mutation compatibility. Their canonical
 selected effect, desired Brightness, generic effect customization, authored-zone
 or keyboard-owned state, and modern Devices presentation remain authoritative.
@@ -716,7 +724,7 @@ not promise immediate deletion of shared native-device infrastructure.
 The standalone RGB editor now serves only native-device families that have not
 yet completed canonical Device Lighting migration. OpenRGB-imported devices,
 RGB Cluster, Scimitar Pro RGB, Scimitar RGB Elite, MM800, K95 Platinum, Commander
-Core XT, Commander CORE, and Memory no longer depend on it for lighting
+Core XT, Commander CORE, Memory, and ST100 RGB no longer depend on it for lighting
 configuration. Therefore:
 
 - OpenRGB has cut over independently;
@@ -856,7 +864,10 @@ Speed or another genuine renderer-consumed setting.
     `c493d650`, `9be90f03`, and `065beb93`. Aggregate Device Effect convenience
     controls for Memory, Commander Core XT, and Commander CORE were completed in
     `aed0d672`; `Mixed` remains presentation-only and no parent effect state was
-    introduced.
+    introduced. ST100 RGB completed the authored-zone accessory proof: its
+    source-backed 9-zone `stand` geometry is normalized only for shared
+    presentation, while device geometry, IDs, packet indexes, semantics, and
+    persistence remain device-owned.
 18. Remove `/rgb` after every remaining consumer has parity.
 19. Remove global mutations, target-local RGB copies, remaining override
     infrastructure, duplicate capability adapters, and obsolete CSS and

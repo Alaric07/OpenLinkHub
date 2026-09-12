@@ -233,6 +233,7 @@ var modernDevicePreviewFixtures = []modernDevicePreviewFixture{
 	{Key: "scimitar-elite-modern", Title: "SCIMITAR ELITE", ProductType: common.ProductTypeScimitarRgbElite, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildScimitarEliteModernPreview},
 	{Key: "katar-pro-modern", Title: "Katar Pro", ProductType: common.ProductTypeKatarPro, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildKatarProModernPreview},
 	{Key: "katar-pro-xt-modern", Title: "Katar Pro XT", ProductType: common.ProductTypeKatarProXT, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildKatarProXTModernPreview},
+	{Key: "katar-pro-wireless-modern", Title: "KATAR PRO WIRELESS", ProductType: common.ProductTypeKatarProW, DeviceType: common.DeviceTypeMouse, Views: []modernDevicePreviewView{{ID: "overview", Label: "Overview"}, {ID: "lighting", Label: "Lighting"}, {ID: "dpi", Label: "DPI"}, {ID: "buttons", Label: "Buttons"}}, Build: buildKatarProWirelessModernPreview},
 }
 
 func buildSCUFEnvisionProModernPreview(product, serial string, usb bool) *devicesWorkspaceSummary {
@@ -1263,6 +1264,13 @@ func buildKatarProModernPreview() *devicesWorkspaceSummary {
 
 func buildKatarProXTModernPreview() *devicesWorkspaceSummary {
 	return buildKatarModernPreview("KATAR PRO XT", "preview-katar-pro-xt-modern", "3.1.28", "Stage 2")
+}
+
+func buildKatarProWirelessModernPreview() *devicesWorkspaceSummary {
+	s := buildWirelessMouseModernPreviewWithCapabilities("KATAR PRO", "preview-katar-pro-wireless-modern", true, true, false, false)
+	s.Performance.PollingRate.Options = append(s.Performance.PollingRate.Options, devicesPerformanceOptionSummary{Value: 5, Label: "2000 Hz / 0.5 msec"})
+	s.SleepTimer = &devicesSleepTimerWorkspaceSummary{Value: 5, Options: []devicesSleepTimerOptionSummary{{Value: 1, Label: "1 minute"}, {Value: 5, Label: "5 minutes"}, {Value: 15, Label: "15 minutes"}}}
+	return s
 }
 
 func buildKatarModernPreview(product, serial, firmware, activeStage string) *devicesWorkspaceSummary {

@@ -4429,6 +4429,9 @@ func devicesWorkspaceSummaryForSerial(
 	if device.ProductType == common.ProductTypeVirtuosoXTW || device.ProductType == common.ProductTypeVirtuosoXTWU {
 		summary.LegacyLighting = true
 	}
+	if device.ProductType == common.ProductTypeKatarProW {
+		summary.LegacyLighting = true
+	}
 	if device.ProductType == common.ProductTypeDarkstarW || device.ProductType == common.ProductTypeDarkstarWU {
 		summary.LegacyLighting = true
 	}
